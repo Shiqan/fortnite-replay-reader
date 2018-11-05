@@ -48,8 +48,10 @@ class ConstBitStreamWrapper(bitstring.ConstBitStream):
 
 
 class Reader:
-    def __init__(self, path):
-        self.path = path
+    _close_on_exit = False
+    
+    def __init__(self, src):
+        self.src = src
         self._file = None
         self.replay = None
         self.eliminations = []
@@ -63,17 +65,25 @@ class Reader:
         return self.replay.len
 
     def __repr__(self):
-        return 'Replay file {path}'.format(path=self.path)
+        return 'Replay file {path}'.format(path=self.src)
 
     def __enter__(self):
-        self._file = open(self.path, 'r')
+        if isinstance(self.src, str):
+            self._file = open(self.src, 'rb')
+            self._close_on_exit = True
+        elif isinstance(self.src, bytes):
+            self._file = self.src
+        else:
+             raise TypeError()
+
         self.replay = ConstBitStreamWrapper(self._file)
         self.parse_meta()
         self.parse_chunks()
         return self
 
     def __exit__(self, *args):
-        self._file.close()
+        if self._close_on_exit:
+            self._file.close()
 
     def parse_meta(self):
         magic_number = self.replay.read_uint32()
