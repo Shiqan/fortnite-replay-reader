@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 
 
 class Weapons(Enum):
+    """ Enumeration of weapon types as they occur in the replay """
     STORM = 0
     FALL = 1
     PISTOL = 2
@@ -31,7 +32,7 @@ class Weapons(Enum):
 
 
 class BitTypes(Enum):
-    '''See bitstring for more types'''
+    """ See bitstring for more types """
     UINT8 = 'uint:8'
     INT_32 = 'intle:32'
     UINT_32 = 'uintle:32'
@@ -41,25 +42,33 @@ class BitTypes(Enum):
     BYTE = 'bytes:1'
     BOOL = 'bool'
 
+
 class ChunkTypes(Enum):
+    """ Replay chunk types as defined by Unreal Engine """
     HEADER = 0
     REPLAYDATA = 1
     CHECKPOINT = 2
     EVENT = 3
 
+
 class HistoryTypes(Enum):
+    """ Replay history types """
     HISTORY_INITIAL = 0
     HISTORY_FIXEDSIZE_FRIENDLY_NAME = 1
     HISTORY_COMPRESSION = 2
     HISTORY_RECORDED_TIMESTAMP = 3
 
+
 class EventTypes(Enum):
+    """ Replay event types """
     PLAYER_ELIMINATION = 'playerElim'
     MATCH_STATS = 'AthenaMatchStats'
     TEAM_STATS = 'AthenaMatchTeamStats'
 
+
 @dataclass
 class Elimination:
+    """ Elimination data """
     eliminated: str
     eliminator: str
     gun_type: int
@@ -76,6 +85,7 @@ class Elimination:
 
 @dataclass
 class Stats:
+    """ Personal stats from a replay """
     unknown: int
     accuracy: float
     assists: int
@@ -92,6 +102,7 @@ class Stats:
 
 @dataclass
 class TeamStats:
+    """ Team stats from a replay """
     unknown: int
     position: int
     total_players: int

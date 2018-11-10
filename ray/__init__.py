@@ -5,4 +5,6 @@
 Fortnite replay parser
 """
 
+from .models import *
+from .exceptions import *
 from .reader import Reader
