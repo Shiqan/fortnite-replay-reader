@@ -8,7 +8,7 @@ from ray.models import Stats, TeamStats
 
 def test_reader_filepath():
     TESTDATA_FILENAME = os.path.join(os.path.dirname(
-        __file__), 'Replays\\UnsavedReplay-2018.10.17-20.33.41.replay')
+        __file__), 'Replays/UnsavedReplay-2018.10.17-20.33.41.replay')
 
     with Reader(TESTDATA_FILENAME) as replay:
         expected_stats = asdict(Stats(
@@ -38,7 +38,7 @@ def test_reader_filepath():
 
 def test_reader_bytes():
     TESTDATA_FILENAME = os.path.join(os.path.dirname(
-        __file__), 'Replays\\UnsavedReplay-2018.10.17-20.33.41.replay')
+        __file__), 'Replays/UnsavedReplay-2018.10.17-20.33.41.replay')
 
     f = open(TESTDATA_FILENAME, 'rb')
     with Reader(f.read()) as replay:
