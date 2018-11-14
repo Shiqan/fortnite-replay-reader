@@ -1,6 +1,6 @@
 # Ray - Go 86 em
 
-[![Build Status](https://travis-ci.org/Shiqan/fortnite-replay-reader.svg?branch=develop)](https://travis-ci.org/Shiqan/fortnite-replay-reader)
+[![Build Status](https://travis-ci.org/Shiqan/fortnite-replay-reader.svg?branch=master)](https://travis-ci.org/Shiqan/fortnite-replay-reader)
 [![PyPI](https://img.shields.io/pypi/v/fortnite-replay-reader.svg)](https://pypi.org/project/fortnite-replay-reader/)
 
 Fortnites favorite assistent is here to help you parse replay files.
