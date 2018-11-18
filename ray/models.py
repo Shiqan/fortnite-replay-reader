@@ -27,6 +27,7 @@ class Weapons(Enum):
     UNKNOWN17 = 17
     GASNADE = 23
     UNKNOWN24 = 24
+    TURRET = 25
     TEAMSWITCH = 26
     UNKNOWN28 = 28
 
