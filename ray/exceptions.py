@@ -9,3 +9,6 @@ class ReadStringException(Exception):
 
 class FrameParsingException(Exception):
     pass
+
+class PlayerEliminationException(Exception):
+    pass

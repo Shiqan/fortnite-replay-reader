@@ -137,3 +137,7 @@ pip-selfcheck.json
 
 
 # End of https://www.gitignore.io/api/python,visualstudiocode
+
+# ignore debugging files
+__init__.py
+main.py

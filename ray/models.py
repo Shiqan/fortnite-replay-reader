@@ -5,6 +5,10 @@ import datetime
 from enum import Enum
 
 from dataclasses import dataclass, field
+from ray import logger
+
+__all__ = ['Weapons', 'BitTypes', 'HistoryTypes', 'ChunkTypes',
+           'EventTypes', 'Elimination', 'Stats', 'TeamStats', 'Header']
 
 
 class Weapons(Enum):
@@ -25,17 +29,26 @@ class Weapons(Enum):
     TRAP = 14
     FINALLYELIMINATED = 15
     UNKNOWN17 = 17
+    VEHICLE = 21
+    LMG = 22
     GASNADE = 23
-    UNKNOWN24 = 24
+    OUTOFBOUND = 24
     TURRET = 25
     TEAMSWITCH = 26
     UNKNOWN28 = 28
+    MISSING = 99
+
+    @classmethod
+    def _missing_(cls, value):
+        logger.error(f'Missing weapon type {value}')
+        return cls.MISSING
 
 
 class BitTypes(Enum):
     """ See bitstring for more types """
     UINT8 = 'uint:8'
     INT_32 = 'intle:32'
+    UINT_16 = 'uintle:16'
     UINT_32 = 'uintle:32'
     UINT_64 = 'uintle:64'
     FLOAT_LE_32 = 'floatle:32'
@@ -107,3 +120,14 @@ class TeamStats:
     unknown: int
     position: int
     total_players: int
+
+
+@dataclass
+class Header:
+    """ Fortnite replay header """
+    version: int
+    season: int
+    game_mode = int
+    release: str
+    game_map = str
+    game_sub = str
