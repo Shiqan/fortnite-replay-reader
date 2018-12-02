@@ -125,9 +125,17 @@ class TeamStats:
 @dataclass
 class Header:
     """ Fortnite replay header """
-    version: int
+    header_version: int
+    fortnite_version: int
+    server_side_version: int
     season: int
-    game_mode = int
     release: str
-    game_map = str
-    game_sub = str
+    game_map: str
+    game_sub: str
+    guid: str
+
+    unknown0: int # always 0
+    unknown1: int # always 4
+    unknown2: int # always 0
+    unknown3: int # always 3
+    unknown4: int # 20 for old replays, 21 for newer ones...

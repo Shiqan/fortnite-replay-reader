@@ -10,7 +10,7 @@ from ray.exceptions import (InvalidReplayException, PlayerEliminationException,
                             ReadStringException)
 from ray.logging import logger
 from ray.models import (BitTypes, ChunkTypes, Elimination, EventTypes,
-                        HistoryTypes, Stats, TeamStats)
+                        HistoryTypes, Stats, TeamStats, Header)
 
 FILE_MAGIC = 0x1CA2E27F
 
@@ -91,7 +91,7 @@ class Reader:
         self.src = src
         self._file = None
         self.replay = None
-        self.release = 0
+        self.header = None
         self.eliminations = []
         self.stats = None
         self.team_stats = None
@@ -196,23 +196,46 @@ class Reader:
         header_version = self.replay.read_uint32()
         server_side_version = self.replay.read_uint32()
         season = self.replay.read_uint32()
-        _0 = self.replay.read_uint32()
+        _01 = self.replay.read_uint32()
 
         if header_version > 11:
             guid = self.replay.read_guid()
+        else:
+            guid = ""
 
         _4 = self.replay.read_uint16()
         some_increasing_number = self.replay.read_uint32()
         fortnite_version = self.replay.read_uint32()
-        self.release = self.replay.read_string()
+        release = self.replay.read_string()
 
         if self.replay.read_bool():
             game_map = self.replay.read_string()
-        _0 = self.replay.read_uint32()
+        else:
+            game_map = ""
+        _02 = self.replay.read_uint32()
         _3 = self.replay.read_uint32()
 
         if self.replay.read_bool():
             game_sub = self.replay.read_string()
+        else:
+            game_sub = ""
+
+        self.header = Header(
+            header_version=header_version,
+            fortnite_version=fortnite_version,
+            server_side_version=server_side_version,
+            season=season,
+            release=release,
+            game_map=game_map,
+            game_sub=game_sub,
+            guid=guid,
+
+            unknown0=_01,
+            unknown1=_4,
+            unknown2=_02,
+            unknown3=_3,
+            unknown4=some_increasing_number)
+        logger.debug(self.header)
 
     # solo
     # 3D A1 F5 2C 0D 00 00 00 99 D0 AB 87 06 00 00 00 00 00 00 00 42 23 B4 E8 C8 EC FF 47 AE F0 6D 2F 16 82 1F F0 04 00 15 00 00 00 EA 5C 44 00
@@ -226,6 +249,9 @@ class Reader:
     # duo (wild west)
     # 3D A1 F5 2C 0D 00 00 00 91 43 5D 23 06 00 00 00 00 00 00 00 2D D6 8F 22 39 DB 0C 4B AF FC 73 B6 63 73 D8 62 04 00 15 00 00 00 E4 DE 45 00
     # 3D A1 F5 2C 0D 00 00 00 91 43 5D 23 06 00 00 00 00 00 00 00 88 12 6F A6 BA 9D E0 4D 98 47 3F AE 72 DF DB 58 04 00 15 00 00 00 E4 DE 45 00
+
+    # duo (alchemist tournament)
+    # 3D A1 F5 2C 0D 00 00 00 84 D5 A8 00 06 00 00 00 00 00 00 00 F1 57 DD C7 D9 9C 8B 4F 94 F6 C8 67 DF CC 54 31 04 00 15 00 00 00 5F C8 45 00
 
     # duo(fortnitemares)
     # 3D A1 F5 2C 0D 00 00 00 6A 61 A3 EA 06 00 00 00 00 00 00 00 34 74 C7 F5 50 B3 56 47 92 8A F4 66 AD 67 EC DF 04 00 15 00 00 00 4E A0 44 00
@@ -257,13 +283,13 @@ class Reader:
 
         if group == EventTypes.PLAYER_ELIMINATION.value:
             try:
-                if self.release == '++Fortnite+Release-4.0':
+                if self.header.release == '++Fortnite+Release-4.0':
                     self.replay.bytepos += 12
-                elif self.release == '++Fortnite+Release-4.2':
+                elif self.header.release == '++Fortnite+Release-4.2':
                     self.replay.bytepos += 40
-                elif self.release >= '++Fortnite+Release-4.3':
+                elif self.header.release >= '++Fortnite+Release-4.3':
                     self.replay.bytepos += 45
-                elif self.release == '++Fortnite+Main':
+                elif self.header.release == '++Fortnite+Main':
                     self.replay.bytepos += 45
                 else:
                     raise PlayerEliminationException()
