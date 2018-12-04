@@ -18,6 +18,14 @@ FILE_MAGIC = 0x1CA2E27F
 class ConstBitStreamWrapper(bitstring.ConstBitStream):
     """ Wrapper for the bitstring.ConstBitStream class to provide some convience methods """
 
+    def skip(self, count):
+        """ Skip the next count bytes """
+        self.bytepos += count
+
+    def read_uint8(self):
+        """ Read and interpret next 8 bits as an unassigned integer """
+        return self.read(BitTypes.UINT8.value)
+
     def read_uint16(self):
         """ Read and interpret next 16 bits as an unassigned integer """
         return self.read(BitTypes.UINT_16.value)
@@ -192,7 +200,7 @@ class Reader:
         logger.debug(self.replay.read(f'bytes:{size}'))
         self.replay.bytepos -= size
 
-        self.replay.bytepos += 4
+        self.replay.skip(4)
         header_version = self.replay.read_uint32()
         server_side_version = self.replay.read_uint32()
         season = self.replay.read_uint32()
@@ -237,37 +245,6 @@ class Reader:
             unknown4=some_increasing_number)
         logger.debug(self.header)
 
-    # solo
-    # 3D A1 F5 2C 0D 00 00 00 99 D0 AB 87 06 00 00 00 00 00 00 00 42 23 B4 E8 C8 EC FF 47 AE F0 6D 2F 16 82 1F F0 04 00 15 00 00 00 EA 5C 44 00
-    # 3D A1 F5 2C 0D 00 00 00 99 D0 AB 87 06 00 00 00 00 00 00 00 7A 00 6F 41 C4 E3 E4 47 8C 7E 31 AC 5E 6A 41 2B 04 00 15 00 00 00 EA 5C 44 00
-    # 3D A1 F5 2C 0D 00 00 00 99 D0 AB 87 06 00 00 00 00 00 00 00 59 F2 58 E2 AF D7 F9 43 AC 1B F8 5E 5C 01 87 93 04 00 15 00 00 00 EA 5C 44 00
-    # 3D A1 F5 2C 0D 00 00 00 99 D0 AB 87 06 00 00 00 00 00 00 00 1E 6F B0 A7 D4 6B 63 41 B3 39 11 B3 A5 60 F5 F9 04 00 15 00 00 00 EA 5C 44 00
-
-    # solo (winter ...)
-    # 3D A1 F5 2C 0D 00 00 00 91 43 5D 23 06 00 00 00 00 00 00 00 1D 2E 50 EF AA 20 BF 4A AC B0 B8 BC 0E CE A6 47 04 00 15 00 00 00 E4 DE 45 00
-
-    # duo (wild west)
-    # 3D A1 F5 2C 0D 00 00 00 91 43 5D 23 06 00 00 00 00 00 00 00 2D D6 8F 22 39 DB 0C 4B AF FC 73 B6 63 73 D8 62 04 00 15 00 00 00 E4 DE 45 00
-    # 3D A1 F5 2C 0D 00 00 00 91 43 5D 23 06 00 00 00 00 00 00 00 88 12 6F A6 BA 9D E0 4D 98 47 3F AE 72 DF DB 58 04 00 15 00 00 00 E4 DE 45 00
-
-    # duo (alchemist tournament)
-    # 3D A1 F5 2C 0D 00 00 00 84 D5 A8 00 06 00 00 00 00 00 00 00 F1 57 DD C7 D9 9C 8B 4F 94 F6 C8 67 DF CC 54 31 04 00 15 00 00 00 5F C8 45 00
-
-    # duo(fortnitemares)
-    # 3D A1 F5 2C 0D 00 00 00 6A 61 A3 EA 06 00 00 00 00 00 00 00 34 74 C7 F5 50 B3 56 47 92 8A F4 66 AD 67 EC DF 04 00 15 00 00 00 4E A0 44 00
-    # 3D A1 F5 2C 0D 00 00 00 6A 61 A3 EA 06 00 00 00 00 00 00 00 04 FF F2 A7 9E 43 66 47 B4 54 C9 88 95 1A EA 9A 04 00 15 00 00 00 9C BA 44 00
-    # 3D A1 F5 2C 0D 00 00 00 6A 61 A3 EA 06 00 00 00 00 00 00 00 16 48 E0 E4 A0 37 AC 4E B1 54 60 D6 68 68 1E 18 04 00 15 00 00 00 9C BA 44 00
-
-    # squad
-    # 3D A1 F5 2C 0D 00 00 00 99 D0 AB 87 06 00 00 00 00 00 00 00 94 78 46 E8 46 B6 25 45 B2 85 96 92 59 00 A4 2F 04 00 15 00 00 00 C2 4C 44 00
-    # 3D A1 F5 2C 0D 00 00 00 99 D0 AB 87 06 00 00 00 00 00 00 00 DD 2C F1 11 F3 C6 13 46 99 BD C6 07 20 C9 A0 57 04 00 15 00 00 00 C2 4C 44 00
-    # 3D A1 F5 2C 0D 00 00 00 91 43 5D 23 06 00 00 00 00 00 00 00 F0 76 AB 5B 8F 81 72 40 A8 2F 39 7C E9 4E 3C 65 04 00 15 00 00 00 E4 DE 45 00
-
-    # squad(fortnitemares)
-    # 3D A1 F5 2C 0D 00 00 00 6A 61 A3 EA 06 00 00 00 00 00 00 00 B2 FF FA 4A A7 09 B7 4E A3 6F 25 EC 8C 92 3F 9D 04 00 15 00 00 00 9C BA 44 00
-    # 3D A1 F5 2C 0D 00 00 00 6A 61 A3 EA 06 00 00 00 00 00 00 00 E5 7F 0C 98 87 B4 26 41 A7 04 79 50 CD D6 D7 9C 04 00 15 00 00 00 9C BA 44 00
-    # 3D A1 F5 2C 0D 00 00 00 6A 61 A3 EA 06 00 00 00 00 00 00 00 38 C4 26 0A 7F 1F 5D 41 AF E5 B5 39 43 9C 0E 47 04 00 15 00 00 00 9C BA 44 00
-
     def parse_event(self):
         """ Parse custom Fortnite events """
         event_id = self.replay.read_string()
@@ -284,13 +261,13 @@ class Reader:
         if group == EventTypes.PLAYER_ELIMINATION.value:
             try:
                 if self.header.release == '++Fortnite+Release-4.0':
-                    self.replay.bytepos += 12
+                    self.replay.skip(12)
                 elif self.header.release == '++Fortnite+Release-4.2':
-                    self.replay.bytepos += 40
+                    self.replay.skip(40)
                 elif self.header.release >= '++Fortnite+Release-4.3':
-                    self.replay.bytepos += 45
+                    self.replay.skip(45)
                 elif self.header.release == '++Fortnite+Main':
-                    self.replay.bytepos += 45
+                    self.replay.skip(45)
                 else:
                     raise PlayerEliminationException()
                 eliminated = self.replay.read_string()

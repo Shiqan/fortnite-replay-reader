@@ -46,8 +46,8 @@ class Weapons(Enum):
 
 class BitTypes(Enum):
     """ See bitstring for more types """
-    UINT8 = 'uint:8'
     INT_32 = 'intle:32'
+    UINT8 = 'uint:8'
     UINT_16 = 'uintle:16'
     UINT_32 = 'uintle:32'
     UINT_64 = 'uintle:64'
