@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/Shiqan/fortnite-replay-reader.svg?branch=master)](https://travis-ci.org/Shiqan/fortnite-replay-reader)
 [![PyPI](https://img.shields.io/pypi/v/fortnite-replay-reader.svg)](https://pypi.org/project/fortnite-replay-reader/)
+[![BCH compliance](https://bettercodehub.com/edge/badge/Shiqan/fortnite-replay-reader?branch=develop)](https://bettercodehub.com/)
 
 Fortnites favorite assistent is here to help you parse replay files.
 

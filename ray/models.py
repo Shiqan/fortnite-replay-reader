@@ -5,6 +5,10 @@ import datetime
 from enum import Enum
 
 from dataclasses import dataclass, field
+from ray import logger
+
+__all__ = ['Weapons', 'BitTypes', 'HistoryTypes', 'ChunkTypes',
+           'EventTypes', 'Elimination', 'Stats', 'TeamStats', 'Header', 'HeaderTypes']
 
 
 class Weapons(Enum):
@@ -18,24 +22,41 @@ class Weapons(Enum):
     SNIPER = 6
     PICKAXE = 7
     GRENADE = 8
+    # UNKNOWN9 = 9
     GRENADELAUNCHER = 10
     RPG = 11
     MINIGUN = 12
     BOW = 13
     TRAP = 14
     FINALLYELIMINATED = 15
+    # UNKNOWN16 = 16
     UNKNOWN17 = 17
+    VEHICLE = 21
+    LMG = 22
     GASNADE = 23
-    UNKNOWN24 = 24
+    OUTOFBOUND = 24
     TURRET = 25
     TEAMSWITCH = 26
     UNKNOWN28 = 28
+    # UNKNOWN27 = 27
+    # UNKNOWN29 = 29
+    # UNKNOWN32 = 32
+    # UNKNOWN34 = 34
+    # UNKNOWN35 = 35
+    BIPLANE_GUNS = 38
+    MISSING = 99
+
+    @classmethod
+    def _missing_(cls, value):
+        logger.error(f'Missing weapon type {value}')
+        return cls.MISSING
 
 
 class BitTypes(Enum):
     """ See bitstring for more types """
-    UINT8 = 'uint:8'
     INT_32 = 'intle:32'
+    UINT8 = 'uint:8'
+    UINT_16 = 'uintle:16'
     UINT_32 = 'uintle:32'
     UINT_64 = 'uintle:64'
     FLOAT_LE_32 = 'floatle:32'
@@ -60,6 +81,11 @@ class HistoryTypes(Enum):
     HISTORY_RECORDED_TIMESTAMP = 3
 
 
+class HeaderTypes(Enum):
+    """ Replay header types """
+    HEADER_GUID = 11
+
+
 class EventTypes(Enum):
     """ Replay event types """
     PLAYER_ELIMINATION = 'playerElim'
@@ -79,9 +105,12 @@ class Elimination:
 
     def __post_init__(self):
         self.weapon = Weapons(self.gun_type).name
+        if self.weapon == Weapons.MISSING.value:
+            logger.error(self)
 
     def __repr__(self):
-        return '{eliminated} got {event} by {eliminator} with {gun_type}'.format(eliminated=self.eliminated, event=('knocked' if self.knocked else 'eliminated'), eliminator=self.eliminator, gun_type=self.weapon)
+        elim_type = 'knocked' if self.knocked else 'eliminated'
+        return f'{self.eliminated} got {elim_type} by {self.eliminator} with {self.gun_type}'
 
 
 @dataclass
@@ -107,3 +136,22 @@ class TeamStats:
     unknown: int
     position: int
     total_players: int
+
+
+@dataclass
+class Header:
+    """ Fortnite replay header """
+    header_version: int
+    fortnite_version: int
+    server_side_version: int
+    season: int
+    release: str
+    game_map: str
+    game_sub: str
+    guid: str
+
+    unknown0: int  # always 0
+    unknown1: int  # always 4
+    unknown2: int  # always 0
+    unknown3: int  # always 3
+    unknown4: int  # 20 for old replays, 21 for newer ones, 22 for s7...
