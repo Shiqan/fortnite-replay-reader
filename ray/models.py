@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from ray import logger
 
 __all__ = ['Weapons', 'BitTypes', 'HistoryTypes', 'ChunkTypes',
-           'EventTypes', 'Elimination', 'Stats', 'TeamStats', 'Header']
+           'EventTypes', 'Elimination', 'Stats', 'TeamStats', 'Header', 'HeaderTypes']
 
 
 class Weapons(Enum):
@@ -22,12 +22,14 @@ class Weapons(Enum):
     SNIPER = 6
     PICKAXE = 7
     GRENADE = 8
+    # UNKNOWN9 = 9
     GRENADELAUNCHER = 10
     RPG = 11
     MINIGUN = 12
     BOW = 13
     TRAP = 14
     FINALLYELIMINATED = 15
+    # UNKNOWN16 = 16
     UNKNOWN17 = 17
     VEHICLE = 21
     LMG = 22
@@ -36,6 +38,12 @@ class Weapons(Enum):
     TURRET = 25
     TEAMSWITCH = 26
     UNKNOWN28 = 28
+    # UNKNOWN27 = 27
+    # UNKNOWN29 = 29
+    # UNKNOWN32 = 32
+    # UNKNOWN34 = 34
+    # UNKNOWN35 = 35
+    BIPLANE_GUNS = 38
     MISSING = 99
 
     @classmethod
@@ -73,6 +81,11 @@ class HistoryTypes(Enum):
     HISTORY_RECORDED_TIMESTAMP = 3
 
 
+class HeaderTypes(Enum):
+    """ Replay header types """
+    HEADER_GUID = 11
+
+
 class EventTypes(Enum):
     """ Replay event types """
     PLAYER_ELIMINATION = 'playerElim'
@@ -92,9 +105,12 @@ class Elimination:
 
     def __post_init__(self):
         self.weapon = Weapons(self.gun_type).name
+        if self.weapon == Weapons.MISSING.value:
+            logger.error(self)
 
     def __repr__(self):
-        return '{eliminated} got {event} by {eliminator} with {gun_type}'.format(eliminated=self.eliminated, event=('knocked' if self.knocked else 'eliminated'), eliminator=self.eliminator, gun_type=self.weapon)
+        elim_type = 'knocked' if self.knocked else 'eliminated'
+        return f'{self.eliminated} got {elim_type} by {self.eliminator} with {self.gun_type}'
 
 
 @dataclass
@@ -134,8 +150,8 @@ class Header:
     game_sub: str
     guid: str
 
-    unknown0: int # always 0
-    unknown1: int # always 4
-    unknown2: int # always 0
-    unknown3: int # always 3
-    unknown4: int # 20 for old replays, 21 for newer ones...
+    unknown0: int  # always 0
+    unknown1: int  # always 4
+    unknown2: int  # always 0
+    unknown3: int  # always 3
+    unknown4: int  # 20 for old replays, 21 for newer ones, 22 for s7...

@@ -10,7 +10,7 @@ from ray.exceptions import (InvalidReplayException, PlayerEliminationException,
                             ReadStringException)
 from ray.logging import logger
 from ray.models import (BitTypes, ChunkTypes, Elimination, EventTypes,
-                        HistoryTypes, Stats, TeamStats, Header)
+                        HistoryTypes, Stats, TeamStats, Header, HeaderTypes)
 
 FILE_MAGIC = 0x1CA2E27F
 
@@ -206,7 +206,7 @@ class Reader:
         season = self.replay.read_uint32()
         _01 = self.replay.read_uint32()
 
-        if header_version > 11:
+        if header_version > HeaderTypes.HEADER_GUID.value:
             guid = self.replay.read_guid()
         else:
             guid = ""
@@ -260,69 +260,81 @@ class Reader:
 
         if group == EventTypes.PLAYER_ELIMINATION.value:
             try:
-                if self.header.release == '++Fortnite+Release-4.0':
-                    self.replay.skip(12)
-                elif self.header.release == '++Fortnite+Release-4.2':
-                    self.replay.skip(40)
-                elif self.header.release >= '++Fortnite+Release-4.3':
-                    self.replay.skip(45)
-                elif self.header.release == '++Fortnite+Main':
-                    self.replay.skip(45)
-                else:
-                    raise PlayerEliminationException()
-                eliminated = self.replay.read_string()
-                eliminator = self.replay.read_string()
-                gun_type = self.replay.read_byte()
-                knocked = self.replay.read_uint32()
-
-                self.eliminations.append(Elimination(
-                    eliminated=eliminated,
-                    eliminator=eliminator,
-                    gun_type=gun_type,
-                    time=datetime.fromtimestamp(start_time/1000.0),
-                    knocked=knocked))
+                self.parse_elimination_event(start_time)
             except:
                 logger.error("Couldnt parse event PLAYER_ELIMINATION")
                 self.replay.bytepos = current_pos + size
 
         if metadata == EventTypes.MATCH_STATS.value:
-            unknown = self.replay.read_uint32()
-            accuracy = self.replay.read_float32()
-            assists = self.replay.read_uint32()
-            eliminations = self.replay.read_uint32()
-            weapon_damage = self.replay.read_uint32()
-            other_damage = self.replay.read_uint32()
-            revives = self.replay.read_uint32()
-            damage_taken = self.replay.read_uint32()
-            damage_structures = self.replay.read_uint32()
-            materials_gathered = self.replay.read_uint32()
-            materials_used = self.replay.read_uint32()
-            total_traveled = self.replay.read_uint32()
-
-            stats = Stats(
-                unknown=unknown,
-                accuracy=int(accuracy*100),
-                assists=assists,
-                eliminations=eliminations,
-                weapon_damage=weapon_damage,
-                other_damage=other_damage,
-                revives=revives,
-                damage_taken=damage_taken,
-                damage_structures=damage_structures,
-                materials_gathered=materials_gathered,
-                materials_used=materials_used,
-                total_traveled=round(total_traveled / 100000.0)
-            )
-            self.stats = asdict(stats)
+            self.parse_matchstats_event()
 
         if metadata == EventTypes.TEAM_STATS.value:
-            unknown = self.replay.read_uint32()
-            position = self.replay.read_uint32()
-            total_players = self.replay.read_uint32()
+            self.parse_teamstats_event()
 
-            team_stats = TeamStats(
-                unknown=unknown,
-                position=position,
-                total_players=total_players
-            )
-            self.team_stats = asdict(team_stats)
+    def parse_teamstats_event(self):
+        """ Parse Fortnite team stats event """
+        unknown = self.replay.read_uint32()
+        position = self.replay.read_uint32()
+        total_players = self.replay.read_uint32()
+
+        team_stats = TeamStats(
+            unknown=unknown,
+            position=position,
+            total_players=total_players
+        )
+        self.team_stats = asdict(team_stats)
+    
+    def parse_matchstats_event(self):
+        """ Parse Fortnite stats event """
+        unknown = self.replay.read_uint32()
+        accuracy = self.replay.read_float32()
+        assists = self.replay.read_uint32()
+        eliminations = self.replay.read_uint32()
+        weapon_damage = self.replay.read_uint32()
+        other_damage = self.replay.read_uint32()
+        revives = self.replay.read_uint32()
+        damage_taken = self.replay.read_uint32()
+        damage_structures = self.replay.read_uint32()
+        materials_gathered = self.replay.read_uint32()
+        materials_used = self.replay.read_uint32()
+        total_traveled = self.replay.read_uint32()
+
+        stats = Stats(
+            unknown=unknown,
+            accuracy=int(accuracy*100),
+            assists=assists,
+            eliminations=eliminations,
+            weapon_damage=weapon_damage,
+            other_damage=other_damage,
+            revives=revives,
+            damage_taken=damage_taken,
+            damage_structures=damage_structures,
+            materials_gathered=materials_gathered,
+            materials_used=materials_used,
+            total_traveled=round(total_traveled / 100000.0)
+        )
+        self.stats = asdict(stats)
+    
+    def parse_elimination_event(self, time):
+        """ Parse Fortnite elimination event (kill feed) """
+        if self.header.release == '++Fortnite+Release-4.0':
+            self.replay.skip(12)
+        elif self.header.release == '++Fortnite+Release-4.2':
+            self.replay.skip(40)
+        elif self.header.release >= '++Fortnite+Release-4.3':
+            self.replay.skip(45)
+        elif self.header.release == '++Fortnite+Main':
+            self.replay.skip(45)
+        else:
+            raise PlayerEliminationException()
+        eliminated = self.replay.read_string()
+        eliminator = self.replay.read_string()
+        gun_type = self.replay.read_byte()
+        knocked = self.replay.read_uint32()
+
+        self.eliminations.append(Elimination(
+            eliminated=eliminated,
+            eliminator=eliminator,
+            gun_type=gun_type,
+            time=datetime.fromtimestamp(time/1000.0),
+            knocked=knocked))
