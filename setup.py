@@ -7,7 +7,7 @@ def readme():
 
 
 setup(name='fortnite-replay-reader',
-      version='0.1.5',
+      version='0.1.6',
       description='Parse fortnite .replay files',
       long_description=readme(),
       long_description_content_type='text/markdown',

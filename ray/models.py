@@ -43,8 +43,8 @@ class Weapons(Enum):
     # UNKNOWN32 = 32
     # UNKNOWN34 = 34
     # UNKNOWN35 = 35
-    BIPLANE_GUNS = 38
-    BIPLANE_GUNS = 39
+    # BIPLANE_GUNS = 38
+    # BIPLANE_GUNS = 39
     MISSING = 99
 
     @classmethod
