@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import uuid
 from datetime import datetime
 
 import bitstring
@@ -9,8 +10,8 @@ from dataclasses import asdict
 from ray.exceptions import (InvalidReplayException, PlayerEliminationException,
                             ReadStringException)
 from ray.logging import logger
-from ray.models import (BitTypes, ChunkTypes, Elimination, EventTypes,
-                        HistoryTypes, Stats, TeamStats, Header, HeaderTypes)
+from ray.models import (BitTypes, ChunkTypes, Elimination, EventTypes, Header,
+                        HeaderTypes, HistoryTypes, Stats, TeamStats)
 
 FILE_MAGIC = 0x1CA2E27F
 
@@ -55,8 +56,8 @@ class ConstBitStreamWrapper(bitstring.ConstBitStream):
         return self.read_uint32() == 1
 
     def read_guid(self):
-        """ Read and interpret next 16 bits as a guid """
-        return self.read('bytes:16')
+        """ Read and interpret next 16 bits as a guid (4-2-2-1-1-6 format)"""
+        return uuid.UUID(bytes_le=self.read('bytes:16'))
 
     def read_string(self):
         """ Read and interpret next i bits as a string where i is determined defined by the first 32 bits """
@@ -283,7 +284,7 @@ class Reader:
             total_players=total_players
         )
         self.team_stats = asdict(team_stats)
-    
+
     def parse_matchstats_event(self):
         """ Parse Fortnite stats event """
         unknown = self.replay.read_uint32()
@@ -314,7 +315,7 @@ class Reader:
             total_traveled=round(total_traveled / 100000.0)
         )
         self.stats = asdict(stats)
-    
+
     def parse_elimination_event(self, time):
         """ Parse Fortnite elimination event (kill feed) """
         if self.header.release == '++Fortnite+Release-4.0':

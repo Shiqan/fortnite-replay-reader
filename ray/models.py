@@ -30,20 +30,21 @@ class Weapons(Enum):
     TRAP = 14
     FINALLYELIMINATED = 15
     # UNKNOWN16 = 16
-    UNKNOWN17 = 17
+    # UNKNOWN17 = 17
     VEHICLE = 21
     LMG = 22
     GASNADE = 23
     OUTOFBOUND = 24
     TURRET = 25
     TEAMSWITCH = 26
-    UNKNOWN28 = 28
     # UNKNOWN27 = 27
+    # UNKNOWN28 = 28
     # UNKNOWN29 = 29
     # UNKNOWN32 = 32
     # UNKNOWN34 = 34
     # UNKNOWN35 = 35
     BIPLANE_GUNS = 38
+    BIPLANE_GUNS = 39
     MISSING = 99
 
     @classmethod
