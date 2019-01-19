@@ -1,5 +1,7 @@
 from setuptools import setup
 
+import ray
+
 
 def readme():
     with open('README.md') as f:
@@ -7,7 +9,7 @@ def readme():
 
 
 setup(name='fortnite-replay-reader',
-      version='0.1.6',
+      version=ray.__version__,
       description='Parse fortnite .replay files',
       long_description=readme(),
       long_description_content_type='text/markdown',

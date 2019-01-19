@@ -4,15 +4,20 @@ python:
   - "3.7"
 # command to install dependencies
 install:
-  - pip install -r requirements.txt
+  - pip install pipenv
+  - pipenv install
+  - pipenv install --dev
 # command to run tests
 script:
-- pytest
+  - pytest --cov=ray
+after_success:
+  - coveralls
 
 deploy:
   provider: pypi
   user: Shiqan
-  password: QQuOf1BGJe3hF+bPi5jIy6sQIzuFYLUuVy6CgcrzyBdvp3c5JZVnSSG57U85EhBFdk3OkLhO/Yk6V4MO62dLw9VCxkAAjQwtombR6bW4TNaBB+UKHrrupNEJVGQRRNqK+dYMcK0ldP489YKZ7RosP1HhswQwjBiG7tc9UcgNyGQ3hMxs4x32/um4R1+cvVVFP3M1/IfKaKxfQ/MaEmoJY5iL3hZAtc8488EenNrNYJbiNvjXPtG9q/SQkym8x3cAV7CiTeDUW6ksGacIzTvx/ueKAG9dfAhA8Ze1QckHtFcqxdG439MNNg+dICfLBMBJMvfnX4huhVJJWtoZaaUIduUD+MQTPrM9F7CdkJQVYvwANx3+lgqt2DkdMVzoIqrABDX2RWHQ3kZuxX48TGz4tcVw1shF6ecHxcud0qarAkoar+0HKjYvtgqHSNKTBgxV+0hyd4SOW50mrM5/6gI5SGy+deE3NQ3Z/vIPY8jkGGA9tO/TMQ38izJJWEPu6DnSQHfM26jYPDw8Prsc6yoMgzC6T6XeXE4axuU1revhdTncokcjYeJpgDxfIgNLOQ+6FRCuRg8KjHK0EhZJu+ULSSo4OlWxQSrwzGFQ2ByrxAZzweGi5nVX/tyJHPCJANvA1DMtTVyAgTA+uEmdNkF6VkUZwxtkrFhSpTNcy4Ov3VU=
+  password: 
+    secure: QQuOf1BGJe3hF+bPi5jIy6sQIzuFYLUuVy6CgcrzyBdvp3c5JZVnSSG57U85EhBFdk3OkLhO/Yk6V4MO62dLw9VCxkAAjQwtombR6bW4TNaBB+UKHrrupNEJVGQRRNqK+dYMcK0ldP489YKZ7RosP1HhswQwjBiG7tc9UcgNyGQ3hMxs4x32/um4R1+cvVVFP3M1/IfKaKxfQ/MaEmoJY5iL3hZAtc8488EenNrNYJbiNvjXPtG9q/SQkym8x3cAV7CiTeDUW6ksGacIzTvx/ueKAG9dfAhA8Ze1QckHtFcqxdG439MNNg+dICfLBMBJMvfnX4huhVJJWtoZaaUIduUD+MQTPrM9F7CdkJQVYvwANx3+lgqt2DkdMVzoIqrABDX2RWHQ3kZuxX48TGz4tcVw1shF6ecHxcud0qarAkoar+0HKjYvtgqHSNKTBgxV+0hyd4SOW50mrM5/6gI5SGy+deE3NQ3Z/vIPY8jkGGA9tO/TMQ38izJJWEPu6DnSQHfM26jYPDw8Prsc6yoMgzC6T6XeXE4axuU1revhdTncokcjYeJpgDxfIgNLOQ+6FRCuRg8KjHK0EhZJu+ULSSo4OlWxQSrwzGFQ2ByrxAZzweGi5nVX/tyJHPCJANvA1DMtTVyAgTA+uEmdNkF6VkUZwxtkrFhSpTNcy4Ov3VU=
   on:
-    tags: true
     branch: master
+    tags: true
