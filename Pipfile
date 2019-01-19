@@ -13,6 +13,7 @@ rope = "*"
 pytest = "*"
 python-coveralls = "*"
 pytest-cov = "==2.5.1"
+pyyaml = "*"
 
 [requires]
 python_version = "3.7"
