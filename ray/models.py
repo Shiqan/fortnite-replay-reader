@@ -1,6 +1,7 @@
 import datetime
 from enum import Enum
 
+from typing import List,  Tuple
 from dataclasses import dataclass, field
 from ray import logger
 
@@ -23,18 +24,18 @@ class Weapons(Enum):
     GRENADELAUNCHER = 10
     RPG = 11
     MINIGUN = 12
-    BOW = 13
+    # BOW = 13
     TRAP = 14
     FINALLYELIMINATED = 15
     # UNKNOWN16 = 16
-    # UNKNOWN17 = 17
+    # UNKNOWN17 = 17 bleed out by storm?
     VEHICLE = 21
     LMG = 22
     GASNADE = 23
     OUTOFBOUND = 24
-    TURRET = 25
+    # TURRET = 25   
     TEAMSWITCH = 26
-    # UNKNOWN27 = 27
+    # UNKNOWN27 = 27 TURRET HEADSHOT?
     # UNKNOWN28 = 28
     # UNKNOWN29 = 29
     # UNKNOWN32 = 32
@@ -42,6 +43,7 @@ class Weapons(Enum):
     # UNKNOWN35 = 35
     # BIPLANE_GUNS = 38
     # BIPLANE_GUNS = 39
+    # UNKNOWN40 = 40
     MISSING = 99
 
     @classmethod
@@ -139,17 +141,16 @@ class TeamStats:
 @dataclass
 class Header:
     """ Fortnite replay header """
-    header_version: int
-    fortnite_version: int
-    server_side_version: int
-    season: int
-    release: str
-    game_map: str
-    game_sub: str
+    network_version: int
+    network_checksum: int
+    engine_network_version: int
+    game_network_protocol: int
     guid: str
-
-    unknown0: int  # always 0
-    unknown1: int  # always 4
-    unknown2: int  # always 0
-    unknown3: int  # always 3
-    unknown4: int  # 20 for old replays, 21 for newer ones, 22 for s7...
+    major: int
+    minor: int
+    patch: int
+    changelist: int
+    branch: str
+    levelnames_and_times: List[Tuple[str, int]]
+    flags: int
+    game_specific_data: List[str]

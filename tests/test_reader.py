@@ -5,6 +5,17 @@ from dataclasses import asdict
 from ray.reader import Reader
 from ray.models import Stats, TeamStats
 
+def test_season8():
+    filename = os.path.join(os.path.dirname(__file__), 'Replays/season08-2019.04.05.replay')
+    with Reader(filename) as replay:
+        assert replay.header
+        assert replay.team_stats
+
+def test_season910():
+    filename = os.path.join(os.path.dirname(__file__), 'Replays/season09-2019.05.22.replay')
+    with Reader(filename) as replay:
+        assert replay.header
+        assert replay.team_stats
 
 def test_reader_filepath():
     TESTDATA_FILENAME = os.path.join(os.path.dirname(
