@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 
 import bitstring
@@ -11,7 +10,7 @@ from ray.models import (BitTypes, ChunkTypes, Elimination, EventTypes, Header,
                         HeaderTypes, HistoryTypes, Stats, TeamStats)
 
 FILE_MAGIC = 0x1CA2E27F
-
+NETWORK_MAGIC = 0x2CF5A13D
 
 class ConstBitStreamWrapper(bitstring.ConstBitStream):
     """ Wrapper for the bitstring.ConstBitStream class to provide some convience methods """
@@ -52,13 +51,27 @@ class ConstBitStreamWrapper(bitstring.ConstBitStream):
         """ Read and interpret next 32 bits as an boolean """
         return self.read_uint32() == 1
 
+    def hextostring(self, i):
+        s = hex(i)[2:]
+        return s if len(s) == 2 else f'0{s}'
+
     def read_guid(self):
-        """ Read and interpret next 16 bits as a guid (4-2-2-1-1-6 format)"""
-        return uuid.UUID(bytes_le=self.read('bytes:16'))
+        """ Read and interpret next 16 bits as a guid"""
+        return ''.join(self.hextostring(i) for i in self.read('bytes:16'))
+
+    def read_array(self, f):
+        """ Read an array where the first 32 bits indicate the length of the array """
+        length = self.read_uint32()
+        return [f() for _ in range(length)]
+
+    def read_tuple_array(self, f1, f2):
+        """ Read an tuple array where the first 32 bits indicate the length of the array """
+        length = self.read_uint32()
+        return [(f1(), f2()) for _ in range(length)]
 
     def read_string(self):
         """ Read and interpret next i bits as a string where i is determined defined by the first 32 bits """
-        size = self.read(BitTypes.INT_32.value)
+        size = self.read_int32()
 
         if size == 0:
             return ""
@@ -137,8 +150,8 @@ class Reader:
         """ Parse metadata of the file replay (Unreal Engine) """
         logger.info('parse_meta()')
 
-        magic_number = self.replay.read_uint32()
-        if (magic_number != FILE_MAGIC):
+        magic = self.replay.read_uint32()
+        if (magic != FILE_MAGIC):
             raise InvalidReplayException()
         file_version = self.replay.read_uint32()
         lenght_in_ms = self.replay.read_uint32()
@@ -177,71 +190,54 @@ class Reader:
 
     def parse_checkpoint(self):
         """ Parse snapshot of the game environment """
-        logger.info('parse_checkpoint()')
-        checkpointId = self.replay.read_string()
-        checkpoint = self.replay.read_string()
+        pass
 
     def parse_replaydata(self):
         """ Parse incremental changes to the last checkpoint """
-        logger.info('parse_replaydata()')
-
-        start = self.replay.read_uint32()
-        end = self.replay.read_uint32()
-        remaining_offset = self.replay.read_uint32()
-        _ = self.replay.read_uint32()
-        remaining_offset = self.replay.read_uint32()
+        pass
 
     def parse_header(self, size):
         """ Parse metadata of the file replay (Fortnite) """
         logger.info('parse_header()')
 
-        logger.debug(self.replay.read(f'bytes:{size}'))
-        self.replay.bytepos -= size
+        magic = self.replay.read_uint32()
+        if (magic != NETWORK_MAGIC):
+            raise InvalidReplayException()
+        network_version = self.replay.read_uint32()
+        network_checksum = self.replay.read_uint32()
+        engine_network_version = self.replay.read_uint32()
+        game_network_protocol = self.replay.read_uint32()
 
-        self.replay.skip(4)
-        header_version = self.replay.read_uint32()
-        server_side_version = self.replay.read_uint32()
-        season = self.replay.read_uint32()
-        _01 = self.replay.read_uint32()
-
-        if header_version > HeaderTypes.HEADER_GUID.value:
+        if network_version > HeaderTypes.HEADER_GUID.value:
             guid = self.replay.read_guid()
         else:
             guid = ""
 
-        _4 = self.replay.read_uint16()
-        some_increasing_number = self.replay.read_uint32()
-        fortnite_version = self.replay.read_uint32()
-        release = self.replay.read_string()
-
-        if self.replay.read_bool():
-            game_map = self.replay.read_string()
-        else:
-            game_map = ""
-        _02 = self.replay.read_uint32()
-        _3 = self.replay.read_uint32()
-
-        if self.replay.read_bool():
-            game_sub = self.replay.read_string()
-        else:
-            game_sub = ""
+        major = self.replay.read_uint16()
+        minor = self.replay.read_uint16()
+        patch = self.replay.read_uint16()
+        changelist = self.replay.read_uint32()
+        branch = self.replay.read_string()
+    
+        levelnames_and_times = self.replay.read_tuple_array(self.replay.read_string, self.replay.read_uint32)
+        flags = self.replay.read_uint32()
+        game_specific_data = self.replay.read_array(self.replay.read_string)
 
         self.header = Header(
-            header_version=header_version,
-            fortnite_version=fortnite_version,
-            server_side_version=server_side_version,
-            season=season,
-            release=release,
-            game_map=game_map,
-            game_sub=game_sub,
+            network_version=network_version,
+            network_checksum=network_checksum,
+            engine_network_version=engine_network_version,
+            game_network_protocol=game_network_protocol,
             guid=guid,
-
-            unknown0=_01,
-            unknown1=_4,
-            unknown2=_02,
-            unknown3=_3,
-            unknown4=some_increasing_number)
-        logger.debug(self.header)
+            major=major,
+            minor=minor,
+            patch=patch,
+            changelist=changelist,
+            branch=branch,
+            levelnames_and_times=levelnames_and_times,
+            flags=flags,
+            game_specific_data=game_specific_data,
+            )
 
     def parse_event(self):
         """ Parse custom Fortnite events """
@@ -315,18 +311,29 @@ class Reader:
 
     def parse_elimination_event(self, time):
         """ Parse Fortnite elimination event (kill feed) """
-        if self.header.release == '++Fortnite+Release-4.0':
-            self.replay.skip(12)
-        elif self.header.release == '++Fortnite+Release-4.2':
-            self.replay.skip(40)
-        elif self.header.release >= '++Fortnite+Release-4.3':
-            self.replay.skip(45)
-        elif self.header.release == '++Fortnite+Main':
-            self.replay.skip(45)
+
+        if self.header.engine_network_version >= 11 and self.header.branch >= '++Fortnite+Release-9.10':
+            self.replay.skip(87)
+            eliminated = self.replay.read_guid()
+            self.replay.skip(2)
+            eliminator = self.replay.read_guid()
+            assert len(eliminated) == 32
+            assert len(eliminator) == 32
         else:
-            raise PlayerEliminationException()
-        eliminated = self.replay.read_string()
-        eliminator = self.replay.read_string()
+            if self.header.branch == '++Fortnite+Release-4.0':
+                self.replay.skip(12)
+            elif self.header.branch == '++Fortnite+Release-4.2':
+                self.replay.skip(40)
+            elif self.header.branch >= '++Fortnite+Release-4.3':
+                self.replay.skip(45)
+            elif self.header.branch == '++Fortnite+Main':
+                self.replay.skip(45)
+            else:
+                raise PlayerEliminationException()
+
+            eliminated = self.replay.read_string()
+            eliminator = self.replay.read_string()
+
         gun_type = self.replay.read_byte()
         knocked = self.replay.read_uint32()
 
