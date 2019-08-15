@@ -312,7 +312,7 @@ class Reader:
     def parse_elimination_event(self, time):
         """ Parse Fortnite elimination event (kill feed) """
 
-        if self.header.engine_network_version >= 11 and self.header.branch >= '++Fortnite+Release-9.10':
+        if self.header.engine_network_version >= 11 and self.header.version['major'] >= 9:
             self.replay.skip(87)
             eliminated = self.replay.read_guid()
             self.replay.skip(2)

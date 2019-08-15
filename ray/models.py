@@ -1,8 +1,11 @@
 import datetime
-from enum import Enum
+import re
 
-from typing import List,  Tuple
+from collections import defaultdict
 from dataclasses import dataclass, field
+from enum import Enum
+from typing import List, Tuple
+
 from ray import logger
 
 __all__ = ['Weapons', 'BitTypes', 'HistoryTypes', 'ChunkTypes',
@@ -33,7 +36,7 @@ class Weapons(Enum):
     LMG = 22
     GASNADE = 23
     OUTOFBOUND = 24
-    # TURRET = 25   
+    # TURRET = 25
     TEAMSWITCH = 26
     # UNKNOWN27 = 27 TURRET HEADSHOT?
     # UNKNOWN28 = 28
@@ -154,3 +157,21 @@ class Header:
     levelnames_and_times: List[Tuple[str, int]]
     flags: int
     game_specific_data: List[str]
+
+    version_regex = re.compile(r'\+\+Fortnite\+Release\-(?P<major>\d+)\.(?P<minor>\d*)')
+    _version = defaultdict(int)
+
+    @property
+    def version(self) -> dict:
+        if self._version:
+            return self._version
+
+        match = self.version_regex.search(self.branch)
+        if match:
+            self._version =  {**self._version, **{k: int(v) for k,v in match.groupdict().items()}}
+            return self._version
+        return 0
+
+    @version.setter
+    def version(self, value: dict):
+        self._version = value
