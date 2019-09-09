@@ -2,7 +2,7 @@
 Fortnite replay parser
 """
 
-__version__ = '0.1.11'
+__version__ = '0.2.0'
 
 from .logging import logger
 from .models import *
