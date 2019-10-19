@@ -10,18 +10,35 @@ def test_season8():
     with Reader(filename) as replay:
         assert replay.header
         assert replay.team_stats
+        assert replay.eliminations
 
 def test_season910():
     filename = os.path.join(os.path.dirname(__file__), 'Replays/season09-2019.05.22.replay')
     with Reader(filename) as replay:
         assert replay.header
         assert replay.team_stats
+        assert replay.eliminations
 
 def test_season940():
     filename = os.path.join(os.path.dirname(__file__), 'Replays/season09-2019.07.25.replay')
     with Reader(filename) as replay:
         assert replay.header
         assert replay.team_stats
+        assert replay.eliminations
+
+def test_season10():
+    filename = os.path.join(os.path.dirname(__file__), 'Replays/season10-2019.08.14.replay')
+    with Reader(filename) as replay:
+        assert replay.header
+        assert replay.team_stats
+        assert replay.eliminations
+
+def test_season11():
+    filename = os.path.join(os.path.dirname(__file__), 'Replays/season11-2019.10.19.replay')
+    with Reader(filename) as replay:
+        assert replay.header
+        assert replay.team_stats
+        assert replay.eliminations
 
 def test_reader_filepath():
     TESTDATA_FILENAME = os.path.join(os.path.dirname(

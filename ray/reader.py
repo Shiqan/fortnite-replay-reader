@@ -312,13 +312,10 @@ class Reader:
     def parse_elimination_event(self, time):
         """ Parse Fortnite elimination event (kill feed) """
 
-        if self.header.engine_network_version >= 11 and self.header.branch >= '++Fortnite+Release-9.10':
-            self.replay.skip(87)
-            eliminated = self.replay.read_guid()
-            self.replay.skip(2)
-            eliminator = self.replay.read_guid()
-            assert len(eliminated) == 32
-            assert len(eliminator) == 32
+        if self.header.engine_network_version >= 11 and self.header.version['major'] >= 9:
+            self.replay.skip(85)
+            eliminated = self.read_player()
+            eliminator = self.read_player()
         else:
             if self.header.branch == '++Fortnite+Release-4.0':
                 self.replay.skip(12)
@@ -343,3 +340,11 @@ class Reader:
             gun_type=gun_type,
             time=datetime.fromtimestamp(time/1000.0),
             knocked=knocked))
+
+    def read_player(self):
+        player_type = self.replay.read_byte()
+        if player_type == 0x03:
+            return "Bot"
+
+        self.replay.skip(1) # size
+        return self.replay.read_guid()
