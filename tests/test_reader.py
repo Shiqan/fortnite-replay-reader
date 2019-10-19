@@ -27,7 +27,14 @@ def test_season940():
         assert replay.eliminations
 
 def test_season10():
-    filename = os.path.join(os.path.dirname(__file__), 'Replays/seaon10-2019.08.14.replay')
+    filename = os.path.join(os.path.dirname(__file__), 'Replays/season10-2019.08.14.replay')
+    with Reader(filename) as replay:
+        assert replay.header
+        assert replay.team_stats
+        assert replay.eliminations
+
+def test_season11():
+    filename = os.path.join(os.path.dirname(__file__), 'Replays/season11-2019.10.19.replay')
     with Reader(filename) as replay:
         assert replay.header
         assert replay.team_stats
