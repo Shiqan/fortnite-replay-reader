@@ -314,8 +314,8 @@ class Reader:
 
         if self.header.engine_network_version >= 11 and self.header.version['major'] >= 9:
             self.replay.skip(85)
-            eliminated = self.read_player()
-            eliminator = self.read_player()
+            is_human, eliminated = self.read_player()
+            is_human, eliminator = self.read_player()
         else:
             if self.header.branch == '++Fortnite+Release-4.0':
                 self.replay.skip(12)
@@ -344,7 +344,9 @@ class Reader:
     def read_player(self):
         player_type = self.replay.read_byte()
         if player_type == 0x03:
-            return "Bot"
+            return False, "Bot"
+        elif player_type == 0x10:
+            return False, self.replay.read_string()
 
         self.replay.skip(1) # size
-        return self.replay.read_guid()
+        return True, self.replay.read_guid()
