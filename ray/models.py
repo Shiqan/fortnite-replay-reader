@@ -9,7 +9,8 @@ from typing import List, Tuple
 from ray import logger
 
 __all__ = ['Weapons', 'BitTypes', 'HistoryTypes', 'ChunkTypes',
-           'EventTypes', 'Elimination', 'Stats', 'TeamStats', 'Header', 'HeaderTypes']
+           'EventTypes', 'Elimination', 'Stats', 'TeamStats',
+           'Header', 'HeaderTypes', 'PlayerTypes', 'PlayerId']
 
 
 class Weapons(Enum):
@@ -27,10 +28,10 @@ class Weapons(Enum):
     GRENADELAUNCHER = 10
     RPG = 11
     MINIGUN = 12
-    # BOW = 13
+    BOW = 13
     TRAP = 14
     FINALLYELIMINATED = 15
-    # UNKNOWN16 = 16
+    UNKNOWN16 = 16
     # UNKNOWN17 = 17 bleed out by storm?
     VEHICLE = 21
     LMG = 22
@@ -47,6 +48,7 @@ class Weapons(Enum):
     # BIPLANE_GUNS = 38
     # BIPLANE_GUNS = 39
     # UNKNOWN40 = 40
+    UNKNOWN48 = 48
     MISSING = 99
 
     @classmethod
@@ -95,6 +97,16 @@ class EventTypes(Enum):
     MATCH_STATS = 'AthenaMatchStats'
     TEAM_STATS = 'AthenaMatchTeamStats'
 
+class PlayerTypes(Enum):
+    """ Player types """
+    NAMELESS_BOT = 0x03
+    NAMED_BOT = 0x10
+
+@dataclass
+class PlayerId:
+    name: str
+    guid: str
+    is_player: bool
 
 @dataclass
 class Elimination:

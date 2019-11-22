@@ -7,7 +7,7 @@ from ray.exceptions import (InvalidReplayException, PlayerEliminationException,
                             ReadStringException)
 from ray.logging import logger
 from ray.models import (BitTypes, ChunkTypes, Elimination, EventTypes, Header,
-                        HeaderTypes, HistoryTypes, Stats, TeamStats)
+                        HeaderTypes, HistoryTypes, Stats, TeamStats, PlayerTypes, PlayerId)
 
 FILE_MAGIC = 0x1CA2E27F
 NETWORK_MAGIC = 0x2CF5A13D
@@ -328,8 +328,8 @@ class Reader:
             else:
                 raise PlayerEliminationException()
 
-            eliminated = self.replay.read_string()
-            eliminator = self.replay.read_string()
+            eliminated = PlayerId('', self.replay.read_string(), True)
+            eliminator = PlayerId('', self.replay.read_string(), True)
 
         gun_type = self.replay.read_byte()
         knocked = self.replay.read_uint32()
@@ -343,8 +343,12 @@ class Reader:
 
     def read_player(self):
         player_type = self.replay.read_byte()
-        if player_type == 0x03:
-            return "Bot"
+        if player_type == PlayerTypes.NAMELESS_BOT.value:
+            player = PlayerId('Bot', '', False)
+        elif player_type == PlayerTypes.NAMED_BOT.value:
+            player = PlayerId(self.replay.read_string(), '', False)
+        else:
+            self.replay.skip(1) # size
+            player = PlayerId('', self.replay.read_guid(), True)
 
-        self.replay.skip(1) # size
-        return self.replay.read_guid()
+        return player
