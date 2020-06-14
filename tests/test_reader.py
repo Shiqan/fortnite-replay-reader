@@ -47,6 +47,7 @@ def test_season1111():
         assert replay.team_stats
         assert replay.eliminations
 
+
 def test_reader_filepath():
     TESTDATA_FILENAME = os.path.join(os.path.dirname(
         __file__), 'Replays/UnsavedReplay-2018.10.17-20.33.41.replay')
