@@ -1,16 +1,20 @@
+from dataclasses import asdict
 from datetime import datetime
 
 import bitstring
 
-from dataclasses import asdict
-from ray.exceptions import (InvalidReplayException, PlayerEliminationException,
-                            ReadStringException)
+from Crypto.Cipher import AES
+
+from ray.exceptions import (
+    InvalidReplayException, PlayerEliminationException, ReadStringException)
 from ray.logging import logger
-from ray.models import (BitTypes, ChunkTypes, Elimination, EventTypes, Header,
-                        HeaderTypes, HistoryTypes, Stats, TeamStats)
+from ray.models import (
+    BitTypes, ChunkTypes, Elimination, EventTypes, Header, HeaderTypes,
+    HistoryTypes, Meta, PlayerId, PlayerTypes, Stats, TeamStats)
 
 FILE_MAGIC = 0x1CA2E27F
 NETWORK_MAGIC = 0x2CF5A13D
+
 
 class ConstBitStreamWrapper(bitstring.ConstBitStream):
     """ Wrapper for the bitstring.ConstBitStream class to provide some convience methods """
@@ -47,6 +51,10 @@ class ConstBitStreamWrapper(bitstring.ConstBitStream):
         """ Read and interpret next bit as an integer """
         return int.from_bytes(self.read(BitTypes.BYTE.value), byteorder='little')
 
+    def read_bytes(self, size):
+        """ Read and interpret next bit as an integer """
+        return self.read('bytes:'+str(size))
+
     def read_bool(self):
         """ Read and interpret next 32 bits as an boolean """
         return self.read_uint32() == 1
@@ -80,9 +88,9 @@ class ConstBitStreamWrapper(bitstring.ConstBitStream):
 
         if is_unicode:
             size *= -2
-            return self.read('bytes:'+str(size))[:-2].decode('utf-16')
+            return self.read_bytes(size)[:-2].decode('utf-16')
 
-        stream_bytes = self.read('bytes:'+str(size))
+        stream_bytes = self.read_bytes(size)
         string = stream_bytes[:-1]
         if stream_bytes[-1] != 0:
             raise ReadStringException('End of string not zero')
@@ -110,6 +118,7 @@ class Reader:
         self.src = src
         self._file = None
         self.replay = None
+        self.meta = None
         self.header = None
         self.eliminations = []
         self.stats = None
@@ -158,12 +167,44 @@ class Reader:
         network_version = self.replay.read_uint32()
         change_list = self.replay.read_uint32()
         friendly_name = self.replay.read_string()
-        is_live = self.replay.read_uint32()
+        is_live = self.replay.read_bool()
 
         if file_version >= HistoryTypes.HISTORY_RECORDED_TIMESTAMP.value:
             time_stamp = self.replay.read_uint64()
+
         if file_version >= HistoryTypes.HISTORY_COMPRESSION.value:
-            is_compressed = self.replay.read_uint32()
+            is_compressed = self.replay.read_bool()
+
+        is_encrypted = False
+        encryption_key = bytearray()
+        if file_version >= HistoryTypes.HISTORY_ENCRYPTION.value:
+            is_encrypted = self.replay.read_bool()
+            encryption_key_size = self.replay.read_uint32()
+            encryption_key = self.replay.read_bytes(encryption_key_size)
+
+        if (not is_live and is_encrypted and len(encryption_key) == 0):
+            logger.error(
+                "Completed replay is marked encrypted but has no key!")
+            raise InvalidReplayException()
+
+        if (is_live and is_encrypted):
+            logger.error(
+                "Replay is marked encrypted but not yet marked as completed!")
+            raise InvalidReplayException()
+
+        self.meta = Meta(
+            file_version=file_version,
+            lenght_in_ms=lenght_in_ms,
+            network_version=network_version,
+            change_list=change_list,
+            friendly_name=friendly_name,
+            is_live=is_live,
+            time_stamp=time_stamp,
+            is_compressed=is_compressed,
+            is_encrypted=is_encrypted,
+            encryption_key=encryption_key,
+
+        )
 
     def parse_chunks(self):
         """ Parse chunks of the file replay """
@@ -208,7 +249,7 @@ class Reader:
         engine_network_version = self.replay.read_uint32()
         game_network_protocol = self.replay.read_uint32()
 
-        if network_version > HeaderTypes.HEADER_GUID.value:
+        if network_version > HeaderTypes.HISTORY_HEADER_GUID.value:
             guid = self.replay.read_guid()
         else:
             guid = ""
@@ -218,8 +259,9 @@ class Reader:
         patch = self.replay.read_uint16()
         changelist = self.replay.read_uint32()
         branch = self.replay.read_string()
-    
-        levelnames_and_times = self.replay.read_tuple_array(self.replay.read_string, self.replay.read_uint32)
+
+        levelnames_and_times = self.replay.read_tuple_array(
+            self.replay.read_string, self.replay.read_uint32)
         flags = self.replay.read_uint32()
         game_specific_data = self.replay.read_array(self.replay.read_string)
 
@@ -237,7 +279,7 @@ class Reader:
             levelnames_and_times=levelnames_and_times,
             flags=flags,
             game_specific_data=game_specific_data,
-            )
+        )
 
     def parse_event(self):
         """ Parse custom Fortnite events """
@@ -248,28 +290,25 @@ class Reader:
         end_time = self.replay.read_uint32()
         size = self.replay.read_uint32()
 
-        current_pos = self.replay.bytepos
-        logger.info(
-            f'parse_event(), event id => {event_id}, group id => {group}, current offset => {current_pos}')
+        buffer = self.decrypt_buffer(size)
 
         if group == EventTypes.PLAYER_ELIMINATION.value:
             try:
-                self.parse_elimination_event(start_time)
+                self.parse_elimination_event(buffer, start_time)
             except:
                 logger.error("Couldnt parse event PLAYER_ELIMINATION")
-                self.replay.bytepos = current_pos + size
 
         if metadata == EventTypes.MATCH_STATS.value:
-            self.parse_matchstats_event()
+            self.parse_matchstats_event(buffer)
 
         if metadata == EventTypes.TEAM_STATS.value:
-            self.parse_teamstats_event()
+            self.parse_teamstats_event(buffer)
 
-    def parse_teamstats_event(self):
+    def parse_teamstats_event(self, buffer):
         """ Parse Fortnite team stats event """
-        unknown = self.replay.read_uint32()
-        position = self.replay.read_uint32()
-        total_players = self.replay.read_uint32()
+        unknown = buffer.read_uint32()
+        position = buffer.read_uint32()
+        total_players = buffer.read_uint32()
 
         team_stats = TeamStats(
             unknown=unknown,
@@ -278,20 +317,20 @@ class Reader:
         )
         self.team_stats = asdict(team_stats)
 
-    def parse_matchstats_event(self):
+    def parse_matchstats_event(self, buffer):
         """ Parse Fortnite stats event """
-        unknown = self.replay.read_uint32()
-        accuracy = self.replay.read_float32()
-        assists = self.replay.read_uint32()
-        eliminations = self.replay.read_uint32()
-        weapon_damage = self.replay.read_uint32()
-        other_damage = self.replay.read_uint32()
-        revives = self.replay.read_uint32()
-        damage_taken = self.replay.read_uint32()
-        damage_structures = self.replay.read_uint32()
-        materials_gathered = self.replay.read_uint32()
-        materials_used = self.replay.read_uint32()
-        total_traveled = self.replay.read_uint32()
+        unknown = buffer.read_uint32()
+        accuracy = buffer.read_float32()
+        assists = buffer.read_uint32()
+        eliminations = buffer.read_uint32()
+        weapon_damage = buffer.read_uint32()
+        other_damage = buffer.read_uint32()
+        revives = buffer.read_uint32()
+        damage_taken = buffer.read_uint32()
+        damage_structures = buffer.read_uint32()
+        materials_gathered = buffer.read_uint32()
+        materials_used = buffer.read_uint32()
+        total_traveled = buffer.read_uint32()
 
         stats = Stats(
             unknown=unknown,
@@ -309,30 +348,30 @@ class Reader:
         )
         self.stats = asdict(stats)
 
-    def parse_elimination_event(self, time):
+    def parse_elimination_event(self, buffer, time):
         """ Parse Fortnite elimination event (kill feed) """
 
         if self.header.engine_network_version >= 11 and self.header.version['major'] >= 9:
-            self.replay.skip(85)
-            eliminated = self.read_player()
-            eliminator = self.read_player()
+            buffer.skip(85)
+            eliminated = self.read_player(buffer)
+            eliminator = self.read_player(buffer)
         else:
             if self.header.branch == '++Fortnite+Release-4.0':
-                self.replay.skip(12)
+                buffer.skip(12)
             elif self.header.branch == '++Fortnite+Release-4.2':
-                self.replay.skip(40)
+                buffer.skip(40)
             elif self.header.branch >= '++Fortnite+Release-4.3':
-                self.replay.skip(45)
+                buffer.skip(45)
             elif self.header.branch == '++Fortnite+Main':
-                self.replay.skip(45)
+                buffer.skip(45)
             else:
                 raise PlayerEliminationException()
 
-            eliminated = self.replay.read_string()
-            eliminator = self.replay.read_string()
+            eliminated = PlayerId('', buffer.read_string(), True)
+            eliminator = PlayerId('', buffer.read_string(), True)
 
-        gun_type = self.replay.read_byte()
-        knocked = self.replay.read_uint32()
+        gun_type = buffer.read_byte()
+        knocked = buffer.read_uint32()
 
         self.eliminations.append(Elimination(
             eliminated=eliminated,
@@ -341,10 +380,24 @@ class Reader:
             time=datetime.fromtimestamp(time/1000.0),
             knocked=knocked))
 
-    def read_player(self):
-        player_type = self.replay.read_byte()
-        if player_type == 0x03:
-            return "Bot"
+    def read_player(self, buffer):
+        player_type = buffer.read_byte()
+        if player_type == PlayerTypes.NAMELESS_BOT.value:
+            player = PlayerId('Bot', '', False)
+        elif player_type == PlayerTypes.NAMED_BOT.value:
+            player = PlayerId(buffer.read_string(), '', False)
+        else:
+            buffer.skip(1)  # size
+            player = PlayerId('', buffer.read_guid(), True)
 
-        self.replay.skip(1) # size
-        return self.replay.read_guid()
+        return player
+
+    def decrypt_buffer(self, size):
+        if not self.meta.is_encrypted:
+            return ConstBitStreamWrapper(self.replay.read_bytes(size))
+
+        key = self.meta.encryption_key
+        encrypted_bytes = self.replay.read_bytes(size)
+
+        aes = AES.new(key, mode=AES.MODE_ECB)
+        return ConstBitStreamWrapper(aes.decrypt(encrypted_bytes))

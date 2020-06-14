@@ -8,51 +8,9 @@ from typing import List, Tuple
 
 from ray import logger
 
-__all__ = ['Weapons', 'BitTypes', 'HistoryTypes', 'ChunkTypes',
-           'EventTypes', 'Elimination', 'Stats', 'TeamStats', 'Header', 'HeaderTypes']
-
-
-class Weapons(Enum):
-    """ Enumeration of weapon types as they occur in the replay """
-    STORM = 0
-    FALL = 1
-    PISTOL = 2
-    SHOTGUN = 3
-    AR = 4
-    SMG = 5
-    SNIPER = 6
-    PICKAXE = 7
-    GRENADE = 8
-    # UNKNOWN9 = 9
-    GRENADELAUNCHER = 10
-    RPG = 11
-    MINIGUN = 12
-    # BOW = 13
-    TRAP = 14
-    FINALLYELIMINATED = 15
-    # UNKNOWN16 = 16
-    # UNKNOWN17 = 17 bleed out by storm?
-    VEHICLE = 21
-    LMG = 22
-    GASNADE = 23
-    OUTOFBOUND = 24
-    # TURRET = 25
-    TEAMSWITCH = 26
-    # UNKNOWN27 = 27 TURRET HEADSHOT?
-    # UNKNOWN28 = 28
-    # UNKNOWN29 = 29
-    # UNKNOWN32 = 32
-    # UNKNOWN34 = 34
-    # UNKNOWN35 = 35
-    # BIPLANE_GUNS = 38
-    # BIPLANE_GUNS = 39
-    # UNKNOWN40 = 40
-    MISSING = 99
-
-    @classmethod
-    def _missing_(cls, value):
-        logger.error(f'Missing weapon type {value}')
-        return cls.MISSING
+__all__ = ['BitTypes', 'HistoryTypes', 'ChunkTypes',
+           'EventTypes', 'Elimination', 'Stats', 'TeamStats',
+           'Header', 'HeaderTypes', 'PlayerTypes', 'PlayerId', 'Meta']
 
 
 class BitTypes(Enum):
@@ -82,11 +40,27 @@ class HistoryTypes(Enum):
     HISTORY_FIXEDSIZE_FRIENDLY_NAME = 1
     HISTORY_COMPRESSION = 2
     HISTORY_RECORDED_TIMESTAMP = 3
+    HISTORY_STREAM_CHUNK_TIMES = 4
+    HISTORY_FRIENDLY_NAME_ENCODING = 5
+    HISTORY_ENCRYPTION = 6
 
 
 class HeaderTypes(Enum):
     """ Replay header types """
-    HEADER_GUID = 11
+    HISTORY_REPLAY_INITIAL = 1
+    HISTORY_SAVE_ABS_TIME_MS = 2               # We now save the abs demo time in ms for each frame (solves accumulation errors)
+    HISTORY_INCREASE_BUFFER = 3                # Increased buffer size of packets, which invalidates old replays
+    HISTORY_SAVE_ENGINE_VERSION = 4            # Now saving engine net version + InternalProtocolVersion
+    HISTORY_EXTRA_VERSION = 5                  # We now save engine/game protocol version, checksum, and changelist
+    HISTORY_MULTIPLE_LEVELS = 6                # Replays support seamless travel between levels
+    HISTORY_MULTIPLE_LEVELS_TIME_CHANGES = 7   # Save out the time that level changes happen
+    HISTORY_DELETED_STARTUP_ACTORS = 8         # Save DeletedNetStartupActors inside checkpoints
+    HISTORY_HEADER_FLAGS = 9                   # Save out enum flags with demo header
+    HISTORY_LEVEL_STREAMING_FIXES = 10         # Optional level streaming fixes.
+    HISTORY_SAVE_FULL_ENGINE_VERSION = 11      # Now saving the entire FEngineVersion including branch name
+    HISTORY_HEADER_GUID = 12                   # Save guid to demo header
+    HISTORY_CHARACTER_MOVEMENT = 13            # Change to using replicated movement and not interpolation
+    HISTORY_CHARACTER_MOVEMENT_NOINTERP = 14   # No longer recording interpolated movement samples
 
 
 class EventTypes(Enum):
@@ -95,6 +69,16 @@ class EventTypes(Enum):
     MATCH_STATS = 'AthenaMatchStats'
     TEAM_STATS = 'AthenaMatchTeamStats'
 
+class PlayerTypes(Enum):
+    """ Player types """
+    NAMELESS_BOT = 0x03
+    NAMED_BOT = 0x10
+
+@dataclass
+class PlayerId:
+    name: str
+    guid: str
+    is_player: bool
 
 @dataclass
 class Elimination:
@@ -104,12 +88,6 @@ class Elimination:
     gun_type: int
     time: datetime
     knocked: bool = False
-    weapon: str = field(init=False)
-
-    def __post_init__(self):
-        self.weapon = Weapons(self.gun_type).name
-        if self.weapon == Weapons.MISSING.value:
-            logger.error(self)
 
     def __repr__(self):
         elim_type = 'knocked' if self.knocked else 'eliminated'
@@ -175,3 +153,17 @@ class Header:
     @version.setter
     def version(self, value: dict):
         self._version = value
+
+@dataclass
+class Meta:
+    """ Fortnite replay meta information """
+    file_version: int
+    lenght_in_ms: int
+    network_version: int
+    change_list: int
+    friendly_name: str
+    is_live: bool
+    time_stamp: int
+    is_compressed: bool
+    is_encrypted: bool
+    encryption_key: bytes
