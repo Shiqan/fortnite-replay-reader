@@ -19,7 +19,7 @@ with Reader("filepath") as replay:
 ```
 
 ## :warning: More info
-Please see [Fortnite Replay Parser](https://github.com/Shiqan/FortniteReplayReader) and [Fortnite Replay Decompressor](https://github.com/Shiqan/FortniteReplayDecompressor) for more details.
+Please see [Fortnite Replay Decompressor](https://github.com/Shiqan/FortniteReplayDecompressor) for more details.
 
 ## License
 
